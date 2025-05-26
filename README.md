@@ -97,7 +97,11 @@ This trade-off aligns well with conservative trading strategies where avoiding l
 
 ## Effectiveness
 
-The backtesting simulation starting with $3000 and trading $200 per signal showed a modest profit increase, demonstrating the strategy's ability to generate low-risk positive returns. While not capturing all opportunities, the model’s precision-first approach helps maintain capital and reduce losses, making it practical for cautious intraday trading.
+We aimed to develop a model that predicts the **1-minute stock return direction** — whether the price will go up in the next minute — using features derived from minute-level market data such as OHLC prices, spreads, bid/ask sizes, and rolling statistics.
+
+By framing the task as a **binary classification problem** (up or not up), we focused on **high-precision predictions**. The final model achieves approximately **60% precision** at a probability threshold of 0.63, meaning that when the model predicts an upward movement, it's correct about 6 out of 10 times.
+
+This high precision helps minimize false positives and trading noise, making it practical for intraday or high-frequency strategies where **avoiding bad trades is more important than capturing every opportunity**. The model favors reliability in predictions over volume of trades, which aligns well with risk-averse strategies in volatile environments.
 
 ---
 
