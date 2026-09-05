@@ -104,6 +104,20 @@ def test_direction_base_rate_matches_the_python_target(conn, bars):
         assert sql_side.loc[symbol, "up_bars"] == py_side.loc[symbol, "sum"]
 
 
+def test_crossed_books_are_reported_by_session_not_averaged_away(conn):
+    """The pre-open auction crosses the book by design; it must not be silently
+    mixed into the continuous session's spread statistics."""
+    conn.execute(
+        "INSERT INTO minute_bars (symbol, minute, o, h, l, c, total_volume,"
+        " num_trades, weighted_price, avg_spread)"
+        " VALUES ('AAA', '2024-04-01 09:05:00', 1, 1, 1, 1, 1, 1, 1, -0.5)"
+    )
+    out = db.query(conn, "crossed_book_minutes.sql").set_index("session")
+    assert out.loc["continuous session", "crossed_bars"] == 0
+    assert out.loc["pre-open auction", "crossed_bars"] > 0
+    assert out.loc["pre-open auction", "crossed_pct"] == 100.0
+
+
 def test_every_sql_file_is_valid_sql(conn):
     """A query nobody has run is a query that does not work."""
     import pathlib
