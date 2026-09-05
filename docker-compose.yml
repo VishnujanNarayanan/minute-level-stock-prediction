@@ -1,0 +1,14 @@
+# Two ways in: build the warehouse from mounted data, or run the test suite,
+# which needs no data at all.
+services:
+  pipeline:
+    build: .
+    volumes:
+      - ./data:/data
+    environment:
+      NSE_DATA_DIR: /data/raw
+      NSE_DB_PATH: /data/nse.db
+
+  tests:
+    build: .
+    command: ["pytest", "-v"]
