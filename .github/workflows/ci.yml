@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Test
+        # Every test runs on synthetic fixtures, so CI never needs the 580MB of
+        # .asc feeds and the run stays under a minute.
+        run: pytest -v
+
+  pipeline-smoke:
+    # Builds a warehouse end to end from generated .asc files. The unit tests
+    # prove each stage; this proves they still fit together, and that the SQL
+    # runs against a database the pipeline actually produced.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements-dev.txt
+      - name: Generate a miniature feed and build the warehouse
+        env:
+          PYTHONPATH: src
+        run: |
+          python - <<'PY'
+          import random
+          from pathlib import Path
+          random.seed(7)
+          trades = Path("ci_data/trades"); quotes = Path("ci_data/quotes")
+          trades.mkdir(parents=True); quotes.mkdir(parents=True)
+          for symbol in ("AAA", "BBB", "CCC"):
+              price = 100.0
+              t_lines, q_lines = [], []
+              for minute in range(15, 45):
+                  for tick in range(6):
+                      price += random.uniform(-0.4, 0.4)
+                      stamp = f"09:{minute:02d}:{tick * 9:02d}.000"
+                      t_lines.append(f"04/01/2024,{stamp},{price:.2f},{random.randint(1, 90)},"
+                                     + ",".join([""] * 9))
+                      q_lines.append(f"04/01/2024,{stamp},{price - 0.1:.2f},"
+                                     f"{random.randint(1, 40)},{price + 0.1:.2f},"
+                                     f"{random.randint(1, 40)}")
+              (trades / f"{symbol}_2024_04_01_T.asc").write_text("\n".join(t_lines) + "\n")
+              (quotes / f"{symbol}_2024_04_01_Q.asc").write_text("\n".join(q_lines) + "\n")
+          PY
+          python -m nse_pipeline.build --trades ci_data/trades --quotes ci_data/quotes --db ci_data/nse.db
+      - name: Run every query against the warehouse the pipeline just built
+        env:
+          PYTHONPATH: src
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from nse_pipeline import db
+          conn = db.connect("ci_data/nse.db")
+          rows = conn.execute("SELECT COUNT(*) FROM minute_bars").fetchone()[0]
+          assert rows > 0, "the pipeline produced no bars"
+          print(f"minute_bars: {rows} rows")
+          for path in sorted(Path("sql").glob("*.sql")):
+              if path.name == "schema.sql":
+                  continue
+              print(f"{path.name}: {len(db.query(conn, path.name))} rows")
+          PY
