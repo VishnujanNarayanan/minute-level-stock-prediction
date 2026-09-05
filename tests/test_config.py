@@ -3,9 +3,18 @@
 from nse_pipeline import config
 
 
-def test_defaults_sit_under_the_repo():
+def test_defaults_sit_under_the_repo(monkeypatch):
+    """The defaults, with no environment set.
+
+    This has to clear the overrides explicitly: the Docker image legitimately
+    sets NSE_DATA_DIR, and a test that reads ambient environment variables
+    passes or fails depending on where it is run, which is not a test.
+    """
+    for name in ("NSE_DATA_DIR", "NSE_TRADES_DIR", "NSE_QUOTES_DIR", "NSE_DB_PATH"):
+        monkeypatch.delenv(name, raising=False)
     assert config.trades_dir() == config.ROOT / "data" / "raw" / "trades"
     assert config.quotes_dir() == config.ROOT / "data" / "raw" / "quotes"
+    assert config.database_path() == config.ROOT / "data" / "nse.db"
 
 
 def test_environment_overrides_every_path(monkeypatch, tmp_path):
@@ -18,6 +27,7 @@ def test_environment_overrides_every_path(monkeypatch, tmp_path):
 
 
 def test_data_dir_override_cascades(monkeypatch, tmp_path):
+    monkeypatch.delenv("NSE_TRADES_DIR", raising=False)
     monkeypatch.setenv("NSE_DATA_DIR", str(tmp_path))
     assert config.trades_dir() == tmp_path / "trades"
 
