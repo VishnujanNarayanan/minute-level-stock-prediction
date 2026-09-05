@@ -1,0 +1,24 @@
+[project]
+name = "nse-pipeline"
+version = "0.1.0"
+description = "Minute-level NSE trade/quote pipeline and next-minute direction model"
+requires-python = ">=3.9"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+# The legacy notebook is exempt until it is rewritten to call the tested modules
+# (it currently trips 10x B023 late-binding closures in its rolling lambdas).
+# This exclusion is removed in the notebook-refactor change.
+extend-exclude = ["NSE_trade_quote.ipynb"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
