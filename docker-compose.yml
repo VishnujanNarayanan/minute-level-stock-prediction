@@ -6,8 +6,7 @@ services:
     volumes:
       - ./data:/data
     environment:
-      NSE_TRADES_DIR: /data/raw/trades
-      NSE_QUOTES_DIR: /data/raw/quotes
+      NSE_DATA_DIR: /data/raw
       NSE_DB_PATH: /data/nse.db
 
   tests:
