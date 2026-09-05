@@ -4,6 +4,10 @@ data/
 *.asc
 combined_trades.csv
 combined_quotes.csv
+
+# NSE's own file-format documentation — kept locally for reference, but it is
+# the exchange's document, not ours to redistribute from a public repo.
+docs/*.pdf
 *.db
 *.sqlite
 *.sqlite3
