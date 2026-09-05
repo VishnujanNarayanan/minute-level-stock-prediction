@@ -1,0 +1,20 @@
+[project]
+name = "nse-pipeline"
+version = "0.1.0"
+description = "Minute-level NSE trade/quote pipeline and next-minute direction model"
+requires-python = ">=3.9"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

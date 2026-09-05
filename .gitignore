@@ -1,0 +1,29 @@
+# Data — the raw NSE .asc feeds and everything derived from them.
+# 580MB of exchange ticks does not belong in git.
+data/
+*.asc
+combined_trades.csv
+combined_quotes.csv
+*.db
+*.sqlite
+*.sqlite3
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+env/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Notebook
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+
+# Resume extraction material — personal career data, never committed
+bullet_extract_latest.yaml
+bullet_extract_[0-9]*.yaml
+resume_extract*.yaml
