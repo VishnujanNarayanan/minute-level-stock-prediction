@@ -90,3 +90,36 @@ jobs:
                   continue
               print(f"{path.name}: {len(db.query(conn, path.name))} rows")
           PY
+
+  docker:
+    # Builds the image and runs the suite inside it. The Dockerfile is only
+    # evidence that the project runs anywhere if something actually runs it.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the image
+        run: docker build -t nse-pipeline .
+      - name: Run the test suite inside the image
+        run: docker run --rm nse-pipeline pytest -q
+      - name: Build a warehouse inside the image from a generated feed
+        run: |
+          mkdir -p data/raw/trades data/raw/quotes
+          python - <<'PY'
+          import random
+          from pathlib import Path
+          random.seed(3)
+          for symbol in ("AAA", "BBB"):
+              price = 50.0
+              t, q = [], []
+              for minute in range(20, 40):
+                  for tick in range(5):
+                      price += random.uniform(-0.2, 0.2)
+                      stamp = f"09:{minute:02d}:{tick * 11:02d}.000"
+                      t.append(f"04/01/2024,{stamp},{price:.2f},{random.randint(1, 50)},"
+                               + ",".join([""] * 9))
+                      q.append(f"04/01/2024,{stamp},{price - 0.05:.2f},10,{price + 0.05:.2f},10")
+              Path(f"data/raw/trades/{symbol}_2024_04_01_T.asc").write_text("\n".join(t) + "\n")
+              Path(f"data/raw/quotes/{symbol}_2024_04_01_Q.asc").write_text("\n".join(q) + "\n")
+          PY
+          docker run --rm -v "$PWD/data:/data" nse-pipeline
+          test -f data/nse.db && echo "warehouse built inside the container"
